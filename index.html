@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stack Coin</title>
+
+  <!-- Fonts and Libraries -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bitcount+Prop+Double:wght@100..900&display=swap');
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      font-family: 'Bitcount Prop Double', monospace;
+      overflow: hidden;
+      height: 100%;
+      color: #00ccff;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5em 2em;
+      background: rgba(0, 0, 0, 0.85);
+      border-bottom: 1px solid #00ccff33;
+      box-shadow: 0 0 10px #00ccff44;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+    }
+
+    header img { height: 40px; width: 40px; }
+
+    .right-buttons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .buy-button {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3em;
+      padding: 8px 18px;
+      border: 1px solid #00ccff88;
+      background: transparent;
+      color: #00ccff;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .buy-button:hover {
+      background-color: #00ccff22;
+      box-shadow: 0 0 15px #00ccff88;
+      transform: scale(1.05);
+    }
+
+    .mute-button {
+      font-size: 1.2em;
+      color: #00ccffcc;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .mute-button:hover { transform: scale(1.2); }
+
+    main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      padding: 2em;
+      text-align: center;
+      z-index: 10;
+      position: relative;
+    }
+
+    .typed-text {
+      font-size: 3.5em;
+      line-height: 1.4;
+      max-width: 90vw;
+      word-break: break-word;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .typed-cursor {
+      color: #00ccff;
+      font-weight: bold;
+      font-size: 1em;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    canvas#particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .crt-boot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 100vw;
+      background: #000;
+      z-index: 500;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: 1;
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: #00ccff;
+      box-shadow: 0 0 10px #00ccff, 0 0 30px #00ccff;
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="crt-boot" id="crt"></div>
+  <header>
+    <img src="https://raw.githubusercontent.com/metamellow/STACK/refs/heads/main/STACK-ICON.png" alt="STACK Logo" />
+    <div class="right-buttons">
+      <a class="buy-button" href="https://www.youtube.com/@AlphaStack" target="_blank">BUY $STACK</a>
+      <i class="fas fa-volume-up mute-button" id="mute"></i>
+    </div>
+  </header>
+  <main>
+    <div class="typed-text"><span id="typed"></span></div>
+  </main>
+  <canvas id="particles"></canvas>
+  <audio id="bg-music" loop preload="auto">
+    <source src="https://raw.githubusercontent.com/metamellow/STACK/refs/heads/main/STACK-BGMUSIC.ogg" type="audio/ogg">
+  </audio>
+  <script>
+    const crt = document.getElementById("crt");
+    const centerY = window.innerHeight / 2;
+    const spacing = 5;
+    let i = 0;
+    const maxLines = Math.ceil(window.innerHeight / spacing);
+
+    function spawnLine(offset) {
+      const up = document.createElement("div");
+      const down = document.createElement("div");
+      up.className = down.className = "scan-line";
+      const yOffset = offset * spacing;
+      up.style.top = `${centerY - yOffset}px`;
+      down.style.top = `${centerY + yOffset}px`;
+      crt.appendChild(up);
+      crt.appendChild(down);
+      gsap.to([up, down], {
+        opacity: 1,
+        duration: 0.03,
+        onComplete: () => {
+          gsap.to([up, down], {
+            opacity: 0,
+            delay: 0.1,
+            duration: 0.2,
+            onComplete: () => {
+              up.remove();
+              down.remove();
+            }
+          });
+        }
+      });
+    }
+
+    function animateCRT() {
+      if (i >= maxLines) return;
+      spawnLine(i);
+      i++;
+      setTimeout(animateCRT, 5);
+    }
+
+    animateCRT();
+
+    // Fade out boot layer using exponential style easing
+    gsap.to(crt, {
+      opacity: 0,
+      delay: 0,
+      duration: 1.5,
+      ease: "power4.out",
+      onComplete: () => crt.remove()
+    });
+
+    // Audio
+    const audio = document.getElementById("bg-music");
+    const muteBtn = document.getElementById("mute");
+    let isMuted = false;
+
+    muteBtn.addEventListener("click", () => {
+      isMuted = !isMuted;
+      audio.muted = isMuted;
+      muteBtn.className = isMuted ? "fas fa-volume-mute mute-button" : "fas fa-volume-up mute-button";
+    });
+
+    window.addEventListener("click", () => {
+      audio.play().catch(() => {});
+    }, { once: true });
+
+    // Background Particles
+    const canvas = document.getElementById("particles");
+    const ctx = canvas.getContext("2d");
+    let w, h;
+    let particles = [];
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+
+    for (let i = 0; i < 100; i++) {
+      particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        size: Math.random() * 2 + 1,
+        speedY: Math.random() * 0.5 + 0.2,
+        alpha: Math.random() * 0.6 + 0.2
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, w, h);
+      for (let p of particles) {
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(0, 204, 255, ${p.alpha})`;
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        p.y -= p.speedY;
+        if (p.y < 0) p.y = h + Math.random() * 20;
+      }
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // Typed Text Starts Immediately (no delay)
+    new Typed('#typed', {
+      strings: [
+        "Welcome to the $STACK zone.",
+        "Built different. Stack different.",
+        "Crypto moves? Jus stack it.",
+        "No rugs, just stacks.",
+        "Mint it. Stack it. Forget it.",
+        "Not financial advice, but stack anyway.",
+        "Do more. Stack more.",
+        "Every click, every coin, STACK.",
+        "Neon dreams run on $STACK.",
+        "Keep calm and stack on.",
+        "Enter the stackiverse.",
+        "Top signal? Jus stack it.",
+        "You’re early. Jus stack it.",
+        "Stack now, thank yourself later.",
+        "Maximum stacks. Minimal BS.",
+        "The future is stacked.",
+        "Stack Coin > all coins.",
+        "One coin to stack them all.",
+        "Because stacking is believing.",
+        "This is the way: $STACK."
+      ],
+      typeSpeed: 40,
+      backSpeed: 25,
+      backDelay: 2000,
+      loop: true,
+      smartBackspace: true,
+      showCursor: true,
+      cursorChar: '|'
+    });
+  </script>
+</body>
+</html>
